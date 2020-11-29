@@ -1,0 +1,216 @@
+<head>
+    <link rel='stylesheet' href='https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css' />
+    <style>
+#main{max-width:1000px;margin:auto;padding:40px;}
+button{display:block}
+    </style>
+</head>
+<body>
+
+    <div id='main'>
+        <div class='row'>
+            <button id='startDaemon' class='btn btn-primary'>Start Daemon</button>
+            <div style='clear:both'></div>
+        </div>
+
+        <div class='row'>
+            <p></p>
+        </div>
+
+         <div class='row'>
+            <button id='stopDaemon' class='btn btn-primary'>Stop Daemon</button>
+            <div style='clear:both'></div>
+        </div>
+
+        <div class='row'>
+            <p></p>
+        </div>
+
+         <div class='row'>
+            <button id='restartDaemon' class='btn btn-primary'>Restart Daemon</button>
+            <div style='clear:both'></div>
+        </div>
+
+        <div class='row'>
+            <p></p>
+        </div>
+
+        <input type="checkbox" id="ctrlCheck" onclick="buttons_toggle()">
+        <label id="myFlag">Enable control</label>
+
+
+        <div class='row'>
+            <p></p>
+        </div>
+
+
+        <div class='row'>
+            <div id='thread_msg'></div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js" ></script>
+
+    <script type='text/javascript'>
+        "use strict";
+
+        function buttons_toggle(set) {
+            var cls_name = 'btn btn-primary'
+            var buttons_list = document.getElementsByClassName(cls_name);
+            for (var i = 0; i < buttons_list.length; i++) {
+                console.log(buttons_list[i].id); //second console output
+                if (set === 1){
+                    buttons_list[i].disabled = true;
+                }
+                else {
+                        if (buttons_list[i].disabled == true){
+                            buttons_list[i].disabled = false;
+                        } else
+                        {
+                            buttons_list[i].disabled = true;
+                        }
+                }
+            }
+
+        }
+
+        $(document).ready(function(){
+            console.log("Hello st world!");
+            buttons_toggle(1);
+            var i = 0;
+            var threadInterval = setInterval(function(){
+                    checkDaemon("/checkDaemon", function(check){
+                            var msg = $('<div id="message">').text('')
+
+                            if(check.is_up){
+                                msg.text('Daemon is UP')
+                            }
+                               else
+                            {
+                                msg.text('Daemon is DOWN')
+
+                            }
+                            $('#thread_msg').html(msg)
+
+                            i++
+                        })
+                    },4000)
+
+            $('#ctrlCheck').on('click',function(){
+                 var x = $('#ctrlCheck').is(":checked");
+                 var value = x ? 1 : 0;
+                 console.log(x);
+                $.ajax({
+                    type: "POST",
+                    cache: false,
+                    url: "/saveFlag",
+                    data: JSON.stringify({'ctrlFlag' : value}),
+                    dataType: "json",
+                    success: returnSuccess
+
+                })
+            })
+
+            $('#startDaemon').on('click',function(){
+                $.ajax({
+                    type: "POST",
+                    cache: false,
+                    url: "/startDaemon",
+                    dataType: "json",
+                    success: returnSuccess
+                })
+            })
+
+            $('#stopDaemon').on('click',function(){
+                $.ajax({
+                    type: "POST",
+                    cache: false,
+                    url: "/stopDaemon",
+                    dataType: "json",
+                    success: returnSuccess
+
+                })
+            })
+
+            $('#restartDaemon').on('click',function(){
+                $.ajax({
+                    type: "POST",
+                    cache: false,
+                    url: "/restartDaemon",
+                    dataType: "json",
+                    success: returnSuccess
+
+                })
+            })
+
+            function returnSuccess(data) {
+                console.log("Hello world!!");
+                if (data.is_up == 1){
+                    var msg = $('<div id="message">').text('Daemon pressed to start')
+                    $('#thread_msg').html(msg)
+
+                    var threadInterval = setInterval(function(){
+                        checkDaemon("/checkDaemon", function(check){
+                                if(check.is_up){
+                                    msg.text('Daemon is UP')
+                                    window.clearInterval(threadInterval)
+                                }
+
+                                else
+                                {
+                                    msg.text('Daemon is still DOWN')
+
+                                }
+                            })
+                        },1000)
+
+
+                }
+
+                if (data.is_up === 0){
+                    var msg = $('<div id="message">').text('Daemon pressed to stop')
+                    $('#thread_msg').html(msg)
+
+                    var i = 0;
+                    var threadInterval = setInterval(function(){
+                        checkDaemon("/checkDaemon", function(check){
+                                if(check.is_up === 0){
+                                    msg.text('Daemon is DOWN')
+                                    window.clearInterval(threadInterval)
+                                }
+                                else
+                                {
+                                    msg.text('Daemon is still UP')
+                                }
+                                i++
+                            })
+                        },1000)
+
+                }
+
+                if (data.is_up === 2){
+                    var msg = $('<div id="message">').text('Daemon pressed to restart')
+                    $('#thread_msg').html(msg)
+                }
+
+
+            }
+
+            function checkDaemon(url,cb){
+                $.ajax({
+                    type: "GET",
+                    cache: false,
+                    url: url,
+                    dataType: "json",
+                    success: function(data) {
+                        cb(data)
+                    }
+                })
+            }
+
+
+
+
+        })
+    </script>
+</body>
